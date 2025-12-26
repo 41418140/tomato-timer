@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>橘紅番茄鐘</title>
+    <style>
+        :root {
+            --bg-color: #FFF9E3; /* 淺黃色背景 */
+            --tomato-color: #FF6347; /* 橘紅色番茄 */
+            --dark-brown: #3E2723; /* 深咖啡色 */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            transition: background-color 0.3s;
+        }
+
+        /* 截止時的背景閃爍動畫 */
+        .alarm-bg {
+            animation: flash-bg 0.5s infinite;
+        }
+
+        @keyframes flash-bg {
+            0%, 100% { background-color: var(--bg-color); }
+            50% { background-color: var(--dark-brown); }
+        }
+
+        /* 番茄主體 */
+        #tomato-clock {
+            width: 500px;
+            height: 500px;
+            background-color: var(--tomato-color);
+            border-radius: 40% 40% 45% 45%;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        /* 番茄蒂頭裝飾 */
+        #tomato-clock::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            width: 60px;
+            height: 40px;
+            background-color: #2E7D32;
+            border-radius: 10px;
+        }
+
+        /* 時間顯示 */
+        #timer-display {
+            font-size: 80px;
+            margin-bottom: 20px;
+            user-select: none;
+        }
+
+        /* 計時截止前3分鐘的閃爍 */
+        .warning-flash {
+            font-weight: bold;
+            animation: text-blink 1s infinite;
+        }
+
+        @keyframes text-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* 控制區域 */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            text-align: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .btn-start { background-color: #4CAF50; color: white; }
+        .btn-clear { background-color: #f44336; color: white; }
+        .btn-set { background-color: #FFB300; color: white; }
+
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body id="body">
+
+    <div id="tomato-clock">
+        <div class="input-group">
+            <input type="number" id="min-input" placeholder="分" min="0" max="99" value="25">
+            <span>:</span>
+            <input type="number" id="sec-input" placeholder="秒" min="0" max="59" value="00">
+            <button class="btn-set" onclick="setTime()">設定</button>
+        </div>
+
+        <div id="timer-display">25:00</div>
+
+        <div class="controls">
+            <button class="btn-start" id="start-btn" onclick="toggleTimer()">開始</button>
+            <button class="btn-clear" onclick="clearTimer()">清除</button>
+        </div>
+    </div>
+
+    <script>
+        let timeLeft = 1500; // 預設 25 分鐘 (秒)
+        let timerId = null;
+        let isRunning = false;
+
+        const display = document.getElementById('timer-display');
+        const body = document.getElementById('body');
+        const startBtn = document.getElementById('start-btn');
+        const minInput = document.getElementById('min-input');
+        const secInput = document.getElementById('sec-input');
+
+        function updateDisplay() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            const timeString = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            display.innerText = timeString;
+
+            // 需求 5：截止前 3 分鐘 (180秒) 閃爍且加粗
+            if (isRunning && timeLeft <= 180 && timeLeft > 0) {
+                display.classList.add('warning-flash');
+            } else {
+                display.classList.remove('warning-flash');
+            }
+        }
+
+        function setTime() {
+            stopTimer();
+            let m = parseInt(minInput.value) || 0;
+            let s = parseInt(secInput.value) || 0;
+            
+            // 限制最大 99 分 59 秒
+            if (m > 99) m = 99;
+            if (s > 59) s = 59;
+            
+            timeLeft = m * 60 + s;
+            updateDisplay();
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                stopTimer();
+            } else {
+                if (timeLeft <= 0) return;
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            isRunning = true;
+            startBtn.innerText = "暫停";
+            body.classList.remove('alarm-bg');
+            
+            timerId = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    isRunning = false;
+                    startBtn.innerText = "開始";
+                    // 需求 6：截止時背景交互閃爍
+                    body.classList.add('alarm-bg');
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerId);
+            isRunning = false;
+            startBtn.innerText = "開始";
+        }
+
+        function clearTimer() {
+            stopTimer();
+            timeLeft = 0;
+            updateDisplay();
+            body.classList.remove('alarm-bg');
+        }
+
+        // 初始化顯示
+        updateDisplay();
+    </script>
+</body>
+</html>
